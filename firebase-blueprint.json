@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile with role details",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "menuItem": {
+      "title": "MenuItem",
+      "description": "Restaurant menu item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "isBestSeller": { "type": "boolean" },
+        "isRecommended": { "type": "boolean" }
+      },
+      "required": ["id", "name", "price", "category", "isAvailable"]
+    },
+    "order": {
+      "title": "Order",
+      "description": "Food order details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "paymentReference": { "type": "string" },
+        "customerName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "area": { "type": "string" },
+        "city": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "email", "phone", "address", "total", "status", "createdAt"]
+    },
+    "reservation": {
+      "title": "Reservation",
+      "description": "Table reservation details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "guests": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "phone", "email", "date", "time", "guests", "status", "createdAt"]
+    },
+    "settings": {
+      "title": "WebsiteSettings",
+      "description": "Global website and contact settings",
+      "type": "object",
+      "properties": {
+        "restaurantName": { "type": "string" },
+        "logoText": { "type": "string" },
+        "bKashNumber": { "type": "string" },
+        "deliveryCharge": { "type": "number" },
+        "businessHours": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["restaurantName", "logoText", "bKashNumber", "deliveryCharge"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "/menu/{itemId}": {
+      "schema": "menuItem",
+      "description": "Menu items catalog"
+    },
+    "/orders/{orderId}": {
+      "schema": "order",
+      "description": "Customer orders"
+    },
+    "/reservations/{resId}": {
+      "schema": "reservation",
+      "description": "Table bookings"
+    },
+    "/settings/{docId}": {
+      "schema": "settings",
+      "description": "Global settings document"
+    }
+  }
+}

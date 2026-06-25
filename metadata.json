@@ -1,0 +1,6 @@
+{
+  "name": "Midnight Fork",
+  "description": "Midnight Fork is a premium full-stack restaurant ordering and reservation website with live tracking, secure payments, and a luxury dining experience.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
