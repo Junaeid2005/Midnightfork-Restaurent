@@ -10,6 +10,53 @@ import {
   updateDoc, query, where, onSnapshot, orderBy 
 } from 'firebase/firestore';
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 interface AppState {
   // Navigation
   activePage: string;
@@ -27,6 +74,7 @@ interface AppState {
   reservations: Reservation[];
   settings: WebsiteSettings;
   currentUser: AppUser | null;
+  authLoading: boolean;
   emails: EmailNotification[];
   wishlist: string[];
   currentTrackingOrderId: string | null;
@@ -102,9 +150,9 @@ export const useStore = create<AppState>((set, get) => {
 
   return {
     // Navigation
-    activePage: 'home',
-    activeAdminTab: 'dashboard',
-    activeCustomerTab: 'profile',
+    activePage: localStorage.getItem('activePage') || 'home',
+    activeAdminTab: localStorage.getItem('activeAdminTab') || 'dashboard',
+    activeCustomerTab: localStorage.getItem('activeCustomerTab') || 'profile',
 
     // Theme state and action
     theme: (localStorage.getItem('theme') as 'dark' | 'light') || 'dark',
@@ -121,6 +169,7 @@ export const useStore = create<AppState>((set, get) => {
     reservations: [],
     settings: defaultSettings,
     currentUser: null,
+    authLoading: true,
     emails: [],
     wishlist: [],
     currentTrackingOrderId: null,
@@ -130,9 +179,18 @@ export const useStore = create<AppState>((set, get) => {
     searchQuery: '',
 
     // Navigation Setters
-    setActivePage: (page) => set({ activePage: page }),
-    setActiveAdminTab: (tab) => set({ activeAdminTab: tab }),
-    setActiveCustomerTab: (tab) => set({ activeCustomerTab: tab }),
+    setActivePage: (page) => {
+      localStorage.setItem('activePage', page);
+      set({ activePage: page });
+    },
+    setActiveAdminTab: (tab) => {
+      localStorage.setItem('activeAdminTab', tab);
+      set({ activeAdminTab: tab });
+    },
+    setActiveCustomerTab: (tab) => {
+      localStorage.setItem('activeCustomerTab', tab);
+      set({ activeCustomerTab: tab });
+    },
     setSelectedCategory: (category) => set({ selectedCategory: category }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setCurrentTrackingOrderId: (id) => set({ currentTrackingOrderId: id }),
@@ -184,7 +242,7 @@ export const useStore = create<AppState>((set, get) => {
 
     // Auth Actions
     setUser: (user) => {
-      set({ currentUser: user });
+      set({ currentUser: user, authLoading: false });
       if (user) {
         // Automatically sync customer specific data
         get().syncFromFirebase();
@@ -195,7 +253,10 @@ export const useStore = create<AppState>((set, get) => {
       await auth.signOut();
       if (unsubscribeOrders) unsubscribeOrders();
       if (unsubscribeReservations) unsubscribeReservations();
-      set({ currentUser: null, orders: [], reservations: [], activePage: 'home' });
+      localStorage.setItem('activePage', 'home');
+      localStorage.removeItem('activeAdminTab');
+      localStorage.removeItem('activeCustomerTab');
+      set({ currentUser: null, orders: [], reservations: [], activePage: 'home', authLoading: false });
     },
 
     // Order & Payment Actions
@@ -470,13 +531,43 @@ export const useStore = create<AppState>((set, get) => {
 
     // Real-Time Sync function
     syncFromFirebase: () => {
+      // Unsubscribe from previous listeners to prevent multiple listener leaks
+      if (unsubscribeSettings) {
+        try { unsubscribeSettings(); } catch(e) {}
+        unsubscribeSettings = null;
+      }
+      if (unsubscribeMenu) {
+        try { unsubscribeMenu(); } catch(e) {}
+        unsubscribeMenu = null;
+      }
+      if (unsubscribeOrders) {
+        try { unsubscribeOrders(); } catch(e) {}
+        unsubscribeOrders = null;
+      }
+      if (unsubscribeReservations) {
+        try { unsubscribeReservations(); } catch(e) {}
+        unsubscribeReservations = null;
+      }
+
       // 1. Sync global settings
       unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
         if (docSnap.exists()) {
           set({ settings: docSnap.data() as WebsiteSettings });
+        } else {
+          // Seed settings/global with defaultSettings only if admin
+          const user = get().currentUser;
+          if (user?.role === 'admin') {
+            setDoc(doc(db, 'settings', 'global'), defaultSettings)
+              .catch((err) => {
+                handleFirestoreError(err, OperationType.WRITE, 'settings/global');
+              });
+          } else {
+            set({ settings: defaultSettings });
+          }
         }
       }, (error) => {
         console.warn("Firestore settings sync error:", error);
+        handleFirestoreError(error, OperationType.GET, 'settings/global');
       });
 
       // 2. Sync menu items
@@ -487,9 +578,25 @@ export const useStore = create<AppState>((set, get) => {
             items.push(doc.data() as MenuItem);
           });
           set({ menuItems: items });
+        } else {
+          // Seed initialMenuItems to Firebase collection only if admin
+          const user = get().currentUser;
+          if (user?.role === 'admin') {
+            console.log("Seeding initial menu items to Firestore...");
+            initialMenuItems.forEach(async (item) => {
+              try {
+                await setDoc(doc(db, 'menu', item.id), item);
+              } catch (err) {
+                console.warn("Error seeding menu item to Firestore:", err);
+                handleFirestoreError(err, OperationType.WRITE, `menu/${item.id}`);
+              }
+            });
+          }
+          set({ menuItems: initialMenuItems });
         }
       }, (error) => {
         console.warn("Firestore menu sync error:", error);
+        handleFirestoreError(error, OperationType.GET, 'menu');
       });
 
       // 3. Sync orders and reservations
@@ -506,6 +613,7 @@ export const useStore = create<AppState>((set, get) => {
             set({ orders: list });
           }, (error) => {
             console.warn("Firestore admin orders sync error:", error);
+            handleFirestoreError(error, OperationType.GET, 'orders');
           });
 
           const resQuery = query(collection(db, 'reservations'), orderBy('createdAt', 'desc'));
@@ -517,6 +625,7 @@ export const useStore = create<AppState>((set, get) => {
             set({ reservations: list });
           }, (error) => {
             console.warn("Firestore admin reservations sync error:", error);
+            handleFirestoreError(error, OperationType.GET, 'reservations');
           });
         } else {
           // If customer, listen only to their orders & reservations
@@ -534,6 +643,7 @@ export const useStore = create<AppState>((set, get) => {
             set({ orders: list });
           }, (error) => {
             console.warn("Firestore customer orders sync error:", error);
+            handleFirestoreError(error, OperationType.GET, 'orders');
           });
 
           const resQuery = query(
@@ -549,6 +659,7 @@ export const useStore = create<AppState>((set, get) => {
             set({ reservations: list });
           }, (error) => {
             console.warn("Firestore customer reservations sync error:", error);
+            handleFirestoreError(error, OperationType.GET, 'reservations');
           });
         }
       }

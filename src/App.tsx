@@ -2,6 +2,9 @@ import React, { useEffect } from 'react';
 import { useStore } from './store';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { auth, db } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Import All Page Modules
 import { Home } from './pages/Home';
@@ -21,7 +24,48 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsConditions } from './pages/TermsConditions';
 
 export default function App() {
-  const { activePage, syncFromFirebase, currentUser, theme } = useStore();
+  const { activePage, syncFromFirebase, currentUser, theme, authLoading } = useStore();
+
+  // Listen to Firebase authentication state on startup to retain session after refresh
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fUser) => {
+      if (fUser) {
+        // Fetch full profile info from Firestore
+        let role: 'customer' | 'admin' = fUser.email === 'admin@midnightfork.com' ? 'admin' : 'customer';
+        let displayName = fUser.email === 'admin@midnightfork.com' ? 'Demo Admin' : (fUser.email?.split('@')[0] || 'Customer');
+        let phone = fUser.email === 'admin@midnightfork.com' ? '+880 1711-223344' : '';
+        let address = fUser.email === 'admin@midnightfork.com' ? 'Midnight Fork HQ, Banani, Dhaka' : '';
+
+        try {
+          const docSnap = await getDoc(doc(db, 'users', fUser.uid));
+          if (docSnap.exists()) {
+            const uData = docSnap.data();
+            role = uData.role || role;
+            displayName = uData.displayName || displayName;
+            phone = uData.phone || phone;
+            address = uData.address || address;
+          }
+        } catch (dbErr) {
+          console.warn("Could not read profile document on auth reload:", dbErr);
+        }
+
+        useStore.getState().setUser({
+          uid: fUser.uid,
+          email: fUser.email || '',
+          displayName,
+          role,
+          phone,
+          address
+        });
+      } else {
+        useStore.getState().setUser(null);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+    };
+  }, []);
 
   // Run real-time Firestore sync on mount and whenever user authorization changes
   useEffect(() => {
@@ -77,6 +121,22 @@ export default function App() {
         return <Home />;
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="bg-[#050505] text-slate-100 min-h-screen flex items-center justify-center font-sans">
+        <div className="text-center space-y-4">
+          <div className="relative w-12 h-12 mx-auto">
+            <div className="absolute inset-0 rounded-full border-2 border-purple-500/10 animate-pulse"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-t-purple-500 animate-spin"></div>
+          </div>
+          <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-purple-500/80 animate-pulse block mt-2">
+            Midnight Alchemy
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen flex flex-col justify-between selection:bg-purple-800 selection:text-white transition-colors duration-300 ${
