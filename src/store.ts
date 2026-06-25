@@ -7,7 +7,7 @@ import { initialMenuItems } from './data/menu';
 import { db, auth } from './firebase';
 import { 
   doc, setDoc, getDoc, collection, addDoc, getDocs, 
-  updateDoc, query, where, onSnapshot, orderBy 
+  updateDoc, query, where, onSnapshot, orderBy, deleteDoc
 } from 'firebase/firestore';
 
 export enum OperationType {
@@ -246,6 +246,24 @@ export const useStore = create<AppState>((set, get) => {
       if (user) {
         // Automatically sync customer specific data
         get().syncFromFirebase();
+
+        // If admin, automatically verify and seed menu items and default settings to Firestore
+        if (user.role === 'admin') {
+          console.log("Admin logged in: seeding default items and settings to Firestore...");
+          // Seed settings (idempotent, won't wipe unless deleted, but setDoc configures initial)
+          setDoc(doc(db, 'settings', 'global'), defaultSettings)
+            .catch(err => console.warn("Failed to seed settings on admin login:", err));
+
+          // Seed menu items
+          initialMenuItems.forEach(async (item) => {
+            try {
+              // Set each item directly (idempotent because of unique fixed item IDs)
+              await setDoc(doc(db, 'menu', item.id), item);
+            } catch (err) {
+              console.warn(`Failed to seed item ${item.id} on admin login:`, err);
+            }
+          });
+        }
       }
     },
 

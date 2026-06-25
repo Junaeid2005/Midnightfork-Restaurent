@@ -16,6 +16,14 @@ export const Profile: React.FC = () => {
   const [name, setName] = useState(currentUser?.displayName || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [address, setAddress] = useState(currentUser?.address || '');
+
+  React.useEffect(() => {
+    if (currentUser) {
+      setName(currentUser.displayName || '');
+      setPhone(currentUser.phone || '');
+      setAddress(currentUser.address || '');
+    }
+  }, [currentUser]);
   
   const [updating, setUpdating] = useState(false);
   const [success, setSuccess] = useState(false);

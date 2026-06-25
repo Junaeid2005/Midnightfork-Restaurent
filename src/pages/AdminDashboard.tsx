@@ -40,6 +40,18 @@ export const AdminDashboard: React.FC = () => {
   const [sTitle, setSTitle] = useState(settings.bannerTitle);
   const [sSubtitle, setSSubtitle] = useState(settings.bannerSubtitle);
 
+  React.useEffect(() => {
+    setSName(settings.restaurantName);
+    setSBKash(settings.bKashNumber);
+    setSHours(settings.businessHours);
+    setSAddress(settings.address);
+    setSPhone(settings.phone);
+    setSEmail(settings.email);
+    setSCharge(settings.deliveryCharge);
+    setSTitle(settings.bannerTitle);
+    setSSubtitle(settings.bannerSubtitle);
+  }, [settings]);
+
   if (!currentUser || currentUser.role !== 'admin') {
     return (
       <div className="bg-[#050505] text-slate-100 min-h-screen flex items-center justify-center font-sans py-12 px-4">

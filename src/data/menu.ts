@@ -41,6 +41,26 @@ export const initialMenuItems: MenuItem[] = [
     image: 'https://images.unsplash.com/photo-1577906096429-f73bc2c31243?auto=format&fit=crop&w=500&q=80',
     isAvailable: true
   },
+  {
+    id: 'app5',
+    name: 'Spicy Tuna Tartare Crisps',
+    description: 'Truffle-infused premium Ahi tuna tartare layered over crispy house wonton chips with fresh avocado smash and sriracha aioli.',
+    price: 19.00,
+    category: 'Appetizers',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isFeatured: true
+  },
+  {
+    id: 'app6',
+    name: 'Golden Caviar Deviled Eggs',
+    description: 'Gourmet organic deviled eggs filled with whipped truffle-cream yolks, crowned with pristine Sturgeon caviar and micro-greens.',
+    price: 21.00,
+    category: 'Appetizers',
+    image: 'https://images.unsplash.com/photo-1518492104633-130d0cc84637?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isRecommended: true
+  },
 
   // Burgers
   {
@@ -73,6 +93,26 @@ export const initialMenuItems: MenuItem[] = [
     image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=500&q=80',
     isAvailable: true
   },
+  {
+    id: 'burg4',
+    name: 'Royal Foie Gras Burger',
+    description: 'Aged Wagyu beef patty, seared artisanal foie gras, black currant onion reduction, and truffle glaze on a gold-flecked brioche bun.',
+    price: 36.00,
+    category: 'Burgers',
+    image: 'https://images.unsplash.com/photo-1582196016295-f844bd4f3ad9?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isFeatured: true
+  },
+  {
+    id: 'burg5',
+    name: 'Smoked Portobello Pecan Burger',
+    description: 'Grilled balsamic-marinated portobello cap, rich pecan-herb cheese spread, crispy baby arugula, and roasted garlic aioli.',
+    price: 18.00,
+    category: 'Burgers',
+    image: 'https://images.unsplash.com/photo-1525059696034-4967a8e1dca2?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isRecommended: true
+  },
 
   // Pizza
   {
@@ -103,6 +143,25 @@ export const initialMenuItems: MenuItem[] = [
     image: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=500&q=80',
     isAvailable: true,
     isBestSeller: true
+  },
+  {
+    id: 'piz4',
+    name: 'White Truffle Carbonara Pizza',
+    description: 'Creamy carbonara base, pecorino romano, smoked pancetta, soft-cooked organic egg yolk, topped with fresh white truffle shavings.',
+    price: 28.00,
+    category: 'Pizza',
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isRecommended: true
+  },
+  {
+    id: 'piz5',
+    name: 'Crimson Beet & Goat Cheese Flatbread',
+    description: 'Vibrant roasted purple beet puree, creamy goat cheese, caramelized onions, toasted pumpkin seeds, and fresh thyme on crispy flatbread.',
+    price: 19.00,
+    category: 'Pizza',
+    image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true
   },
 
   // Main Course
@@ -145,6 +204,26 @@ export const initialMenuItems: MenuItem[] = [
     image: 'https://images.unsplash.com/photo-1514516345957-556ca7d90a29?auto=format&fit=crop&w=500&q=80',
     isAvailable: true
   },
+  {
+    id: 'main5',
+    name: 'Midnight Squid Ink Fettuccine',
+    description: 'Homemade squid ink fettuccine tossed with pan-seared sea scallops, jumbo tiger prawns, in a silky saffron cream sauce with edible gold leaf.',
+    price: 39.00,
+    category: 'Main Course',
+    image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isFeatured: true
+  },
+  {
+    id: 'main6',
+    name: 'Slow-Braised Angus Short Rib',
+    description: '72-hour slow-cooked premium beef short rib over a rich parsnip-celery root cream mash, served with glazed organic micro-carrots.',
+    price: 45.00,
+    category: 'Main Course',
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isRecommended: true
+  },
 
   // Drinks
   {
@@ -175,6 +254,26 @@ export const initialMenuItems: MenuItem[] = [
     category: 'Drinks',
     image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=500&q=80',
     isAvailable: true
+  },
+  {
+    id: 'drk4',
+    name: 'Violet Lavender Smoke Tonic',
+    description: 'Smoked butterfly pea gin, premium floral lavender syrup, botanical bitters, and sparkling tonic, served in a cherrywood smoke dome.',
+    price: 16.00,
+    category: 'Drinks',
+    image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isFeatured: true
+  },
+  {
+    id: 'drk5',
+    name: 'Golden Saffron Mango Lassi',
+    description: 'A luxurious blend of Alphonso mango nectar, Greek yogurt, cardamom essence, and milk-infused Kashmiri saffron thread, topped with 24k gold leaf.',
+    price: 11.00,
+    category: 'Drinks',
+    image: 'https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isRecommended: true
   },
 
   // Desserts
@@ -207,6 +306,26 @@ export const initialMenuItems: MenuItem[] = [
     category: 'Desserts',
     image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=500&q=80',
     isAvailable: true
+  },
+  {
+    id: 'des4',
+    name: 'Golden Leaf Crème Brûlée',
+    description: 'Rich Madagascar vanilla bean custard with a perfectly caramelized, glass-like sugar shell, crowned with 24k gold leaf and fresh raspberries.',
+    price: 14.00,
+    category: 'Desserts',
+    image: 'https://images.unsplash.com/photo-1516685018646-549198525c1b?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isFeatured: true
+  },
+  {
+    id: 'des5',
+    name: 'Blackberry Ube Mousse Dome',
+    description: 'Vibrant purple ube sponge cake topped with fluffy blackberry mousse and encased in a deep violet glossy mirror glaze.',
+    price: 13.00,
+    category: 'Desserts',
+    image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=500&q=80',
+    isAvailable: true,
+    isRecommended: true
   }
 ];
 
