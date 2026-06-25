@@ -202,6 +202,32 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            const featuredItems = [
+  {
+    id: 101,
+    name: "Royal Butter Chicken",
+    description: "Tender chicken simmered in a rich creamy tomato sauce with aromatic spices.",
+    price: 14.99,
+    category: "Main Course",
+    image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&auto=format&fit=crop&q=60"
+  },
+  {
+    id: 102,
+    name: "Midnight Signature Curry",
+    description: "A bold and flavorful house-special curry crafted with premium ingredients.",
+    price: 16.99,
+    category: "Chef Special",
+    image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&auto=format&fit=crop&q=60"
+  },
+  {
+    id: 103,
+    name: "Purple Flame Burger",
+    description: "Juicy flame-grilled beef burger with premium cheese and Midnight Fork signature sauce.",
+    price: 13.99,
+    category: "Burger",
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&auto=format&fit=crop&q=80"
+  }
+];
             {featuredItems.map((item) => (
               <motion.div
                 key={item.id}
