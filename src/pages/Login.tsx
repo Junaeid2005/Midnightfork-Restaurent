@@ -274,35 +274,6 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        {/* Elegant Autofill helper for quick preview access */}
-        <div className="mt-8 pt-6 border-t border-white/5">
-          <p className="text-[10px] text-center text-gray-500 mb-3 tracking-wider uppercase font-medium">Quick Select Profile</p>
-          <div className="flex gap-2 justify-center">
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('shohan@test.com');
-                setPassword('password123');
-              }}
-              className="px-3 py-1.5 bg-white/5 hover:bg-purple-950/20 hover:border-purple-500/30 text-gray-400 hover:text-purple-300 border border-white/5 rounded-full text-[10px] transition-all duration-200 cursor-pointer flex items-center gap-1"
-            >
-              <User className="w-3 h-3 text-purple-400" />
-              <span>Patron Account</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@midnightfork.com');
-                setPassword('password123');
-              }}
-              className="px-3 py-1.5 bg-[#050505]/40 hover:bg-purple-950/20 hover:border-purple-500/30 text-gray-400 hover:text-purple-300 border border-white/5 rounded-full text-[10px] transition-all duration-200 cursor-pointer flex items-center gap-1"
-            >
-              <ShieldAlert className="w-3 h-3 text-purple-400" />
-              <span>Admin Account</span>
-            </button>
-          </div>
-        </div>
-
         {/* Footer links */}
         <p className="text-center text-[10px] text-gray-500 mt-6">
           Don't have a late-night patron account yet?{' '}
