@@ -8,7 +8,7 @@ export const Home: React.FC = () => {
   const { settings, setActivePage, setSelectedCategory, menuItems, addToCart, theme } = useStore();
   const isLight = theme === 'light';
 
-  const featuredItems = menuItems.filter(item => item.isFeatured && item.isAvailable).slice(0, 3);
+
   
   const categories = [
     { name: 'Appetizers', icon: '🍷', desc: 'Indulge early' },
