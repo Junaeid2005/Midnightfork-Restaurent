@@ -20,6 +20,24 @@ async function sendEmailHelper(to: string, subject: string, body: string) {
   let isTestAccount = false;
   let previewUrl = "";
 
+  async function sendEmailHelper(to: string, subject: string, body: string) {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpSender = process.env.SMTP_SENDER || smtpUser || "no-reply@midnightfork.com";
+
+  console.log("===== SMTP CONFIG =====");
+  console.log("HOST:", smtpHost);
+  console.log("PORT:", smtpPort);
+  console.log("USER:", smtpUser);
+  console.log("PASS:", smtpPass ? "Loaded" : "Missing");
+  console.log("SENDER:", smtpSender);
+  console.log("=======================");
+
+  let transporter;
+  let isTestAccount = false;
+  let previewUrl = "";
   if (smtpHost && smtpUser && smtpPass) {
     // Use configured SMTP server
     transporter = nodemailer.createTransport({
