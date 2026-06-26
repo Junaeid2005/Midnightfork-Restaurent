@@ -117,14 +117,22 @@ async function startServer() {
         isTestAccount: result.isTestAccount,
         previewUrl: result.previewUrl,
       });
-    } catch (error: any) {
-      console.error("Failed to send email:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to dispatch email.",
-        error: error.message || error,
-      });
-    }
+    } 
+     catch (error: any) {
+  console.error("========== SMTP ERROR ==========");
+  console.error(error);
+  console.error("Message:", error?.message);
+  console.error("Code:", error?.code);
+  console.error("Response:", error?.response);
+  console.error("Response Code:", error?.responseCode);
+  console.error("Command:", error?.command);
+  console.error("================================");
+
+  return res.status(500).json({
+    success: false,
+    message: error?.message || "Failed to dispatch verification email.",
+  });
+}
   });
 
   // API Route to generate and send verification OTP
