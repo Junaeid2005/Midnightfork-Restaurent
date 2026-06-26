@@ -1,89 +1,38 @@
 import express from "express";
 import path from "path";
-import nodemailer from "nodemailer";
-import { createServer as createViteServer } from "vite";
-import dotenv from "dotenv";
-import dns from "node:dns";
 
-dns.setDefaultResultOrder("ipv4first");
+import { createServer as createViteServer } from "vite";
+import { Resend } from "resend";
+import dotenv from "dotenv";
+
 dotenv.config();
 
 // Stateless in-memory storage for OTP verification codes
 const otpStore = new Map<string, { code: string; expiresAt: number }>();
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 async function sendEmailHelper(to: string, subject: string, body: string) {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const smtpSender = process.env.SMTP_SENDER || smtpUser || "no-reply@midnightfork.com";
-
-  
-
-  console.log("===== SMTP CONFIG =====");
-  console.log("HOST:", smtpHost);
-  console.log("PORT:", smtpPort);
-  console.log("USER:", smtpUser);
-  console.log("PASS:", smtpPass ? "Loaded" : "Missing");
-  console.log("SENDER:", smtpSender);
-  console.log("=======================");
-
-  let transporter;
-  let isTestAccount = false;
-  let previewUrl = "";
-  if (smtpHost && smtpUser && smtpPass) {
-    // Use configured SMTP server
-    transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      family: 4,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
-    console.log(`Using custom SMTP transport: ${smtpHost}:${smtpPort}`);
-  } else {
-    // Fallback to test account on ethereal.email
-    isTestAccount = true;
-    console.log("SMTP environment variables not configured. Creating Ethereal test account...");
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-  }
-
-  const mailOptions = {
-    from: isTestAccount ? `"Midnight Fork (Simulated)" <${transporter.options.auth?.user}>` : `"Midnight Fork" <${smtpSender}>`,
+  const { data, error } = await resend.emails.send({
+    from: "Midnight Fork <onboarding@resend.dev>",
     to,
     subject,
-    text: body,
     html: body.replace(/\n/g, "<br>"),
-  };
+  });
 
-  const info = await transporter.sendMail(mailOptions);
-
-  if (isTestAccount) {
-    previewUrl = nodemailer.getTestMessageUrl(info) || "";
-    console.log(`Simulated Email Sent! Preview URL: ${previewUrl}`);
-  } else {
-    console.log(`Real Email Sent! Message ID: ${info.messageId}`);
+  if (error) {
+    console.error(error);
+    throw new Error(error.message);
   }
 
   return {
     success: true,
-    messageId: info.messageId,
-    isTestAccount,
-    previewUrl,
+    messageId: data?.id,
+    isTestAccount: false,
+    previewUrl: "",
   };
 }
+
 
 async function startServer() {
   const app = express();
