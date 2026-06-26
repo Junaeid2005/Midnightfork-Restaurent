@@ -16,16 +16,7 @@ async function sendEmailHelper(to: string, subject: string, body: string) {
   const smtpPass = process.env.SMTP_PASS;
   const smtpSender = process.env.SMTP_SENDER || smtpUser || "no-reply@midnightfork.com";
 
-  let transporter;
-  let isTestAccount = false;
-  let previewUrl = "";
-
-  async function sendEmailHelper(to: string, subject: string, body: string) {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const smtpSender = process.env.SMTP_SENDER || smtpUser || "no-reply@midnightfork.com";
+  
 
   console.log("===== SMTP CONFIG =====");
   console.log("HOST:", smtpHost);
