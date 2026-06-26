@@ -3,7 +3,9 @@ import path from "path";
 import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
+import dns from "node:dns";
 
+dns.setDefaultResultOrder("ipv4first");
 dotenv.config();
 
 // Stateless in-memory storage for OTP verification codes
