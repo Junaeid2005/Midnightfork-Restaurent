@@ -273,7 +273,15 @@ export const Login: React.FC = () => {
             <span>{loading ? 'Entering atmosphere...' : 'Authenticate'}</span>
           </button>
         </form>
-
+<div className="mt-4">
+  <button
+    onClick={handleGoogleSignIn}
+    disabled={loading}
+    className="w-full py-3 border border-gray-700 rounded-lg bg-white text-gray-900 hover:bg-gray-100 transition flex items-center justify-center gap-3 font-medium cursor-pointer rounded-lg"
+  >
+    Continue with Google
+  </button>
+</div>
         {/* Footer links */}
         <p className="text-center text-[10px] text-gray-500 mt-6">
           Don't have a late-night patron account yet?{' '}
