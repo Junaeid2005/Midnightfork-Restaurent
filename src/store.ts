@@ -79,6 +79,7 @@ interface AppState {
   wishlist: string[];
   currentTrackingOrderId: string | null;
   cartNotification: { itemName: string; quantity: number } | null;
+  alertModal: { title: string; message: string; type?: 'success' | 'error' | 'info' } | null;
 
   // Search & Filter
   selectedCategory: string;
@@ -94,6 +95,8 @@ interface AppState {
   setCurrentTrackingOrderId: (id: string | null) => void;
   showCartNotification: (itemName: string, quantity: number) => void;
   closeCartNotification: () => void;
+  showAlert: (title: string, message: string, type?: 'success' | 'error' | 'info') => void;
+  hideAlert: () => void;
 
   // Cart Actions
   addToCart: (item: MenuItem, quantity: number) => void;
@@ -177,6 +180,7 @@ export const useStore = create<AppState>((set, get) => {
     wishlist: [],
     currentTrackingOrderId: null,
     cartNotification: null,
+    alertModal: null,
 
     // Search & Filter
     selectedCategory: 'All',
@@ -200,6 +204,8 @@ export const useStore = create<AppState>((set, get) => {
     setCurrentTrackingOrderId: (id) => set({ currentTrackingOrderId: id }),
     showCartNotification: (itemName, quantity) => set({ cartNotification: { itemName, quantity } }),
     closeCartNotification: () => set({ cartNotification: null }),
+    showAlert: (title, message, type = 'info') => set({ alertModal: { title, message, type } }),
+    hideAlert: () => set({ alertModal: null }),
 
     toggleWishlist: (itemId) => {
       const { wishlist } = get();

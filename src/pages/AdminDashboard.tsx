@@ -13,7 +13,7 @@ export const AdminDashboard: React.FC = () => {
     orders, reservations, menuItems, settings, saveSettings,
     addMenuItem, editMenuItem, deleteMenuItem, 
     updateOrderStatus, updateReservationStatus,
-    activeAdminTab, setActiveAdminTab, currentUser, setActivePage
+    activeAdminTab, setActiveAdminTab, currentUser, setActivePage, showAlert
   } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,13 +97,13 @@ export const AdminDashboard: React.FC = () => {
       bannerTitle: sTitle,
       bannerSubtitle: sSubtitle
     });
-    alert('Global Website Settings committed to database successfully!');
+    showAlert('Settings Updated', 'Global Website Settings committed to database successfully!', 'success');
   };
 
   const handleAddMenuSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName || newItemPrice <= 0) {
-      alert('Please enter valid name and pricing parameters.');
+      showAlert('Invalid Input', 'Please enter valid name and pricing parameters.', 'error');
       return;
     }
     await addMenuItem({
@@ -114,7 +114,7 @@ export const AdminDashboard: React.FC = () => {
       image: newItemImg || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80',
       isAvailable: newItemAvail
     });
-    alert(`"${newItemName}" added successfully!`);
+    showAlert('Item Added', `"${newItemName}" added successfully!`, 'success');
     setShowAddForm(false);
     // Reset fields
     setNewItemName('');
@@ -127,7 +127,7 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!editingItem) return;
     await editMenuItem(editingItem.id, editingItem);
-    alert('Menu item parameters updated successfully!');
+    showAlert('Item Updated', 'Menu item parameters updated successfully!', 'success');
     setEditingItem(null);
   };
 

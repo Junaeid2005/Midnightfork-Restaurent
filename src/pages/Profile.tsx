@@ -10,7 +10,7 @@ export const Profile: React.FC = () => {
     currentUser, setUser, 
     orders, reservations, logout,
     activeCustomerTab, setActiveCustomerTab,
-    setCurrentTrackingOrderId, setActivePage
+    setCurrentTrackingOrderId, setActivePage, showAlert
   } = useStore();
 
   const [name, setName] = useState(currentUser?.displayName || '');
@@ -298,7 +298,11 @@ export const Profile: React.FC = () => {
                           {/* Invoice Button */}
                           <button
                             onClick={() => {
-                              alert(`PRINT INVOICE:\n\nMidnight Fork Restaurant\nOrder ID: ${order.id}\nCustomer: ${order.customerName}\nTotal: $${order.total.toFixed(2)}\nStatus: ${order.status}`);
+                              showAlert(
+                                'Order Invoice',
+                                `Midnight Fork Restaurant\n\nOrder ID: ${order.id}\nCustomer: ${order.customerName}\nTotal Amount: $${order.total.toFixed(2)}\nOrder Status: ${order.status}\n\nThank you for dining with us!`,
+                                'success'
+                              );
                             }}
                             className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] text-slate-300 font-semibold uppercase rounded-lg tracking-wider transition-colors cursor-pointer"
                           >

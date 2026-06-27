@@ -5,7 +5,7 @@ import { Footer } from './components/Footer';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ShieldAlert, CheckCircle, Loader2, Award } from 'lucide-react';
+import { ShieldAlert, CheckCircle, Loader2, Award, Info, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Import All Page Modules
@@ -26,7 +26,7 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsConditions } from './pages/TermsConditions';
 
 export default function App() {
-  const { activePage, syncFromFirebase, currentUser, theme, authLoading, cartNotification, closeCartNotification, setActivePage } = useStore();
+  const { activePage, syncFromFirebase, currentUser, theme, authLoading, setActivePage, alertModal, hideAlert } = useStore();
 
 
 
@@ -164,10 +164,10 @@ export default function App() {
       {/* Sticky Premium Header Navigation */}
       <Navbar />
 
-      {/* Custom Cart Notification Modal */}
+      {/* Custom Global Alert Modal */}
       <AnimatePresence>
-        {cartNotification && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]/80 backdrop-blur-sm px-4">
+        {alertModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/80 backdrop-blur-md px-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -178,36 +178,31 @@ export default function App() {
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-600/15 blur-2xl rounded-full"></div>
               <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-purple-600/15 blur-2xl rounded-full"></div>
 
-              {/* Success Checkmark Ring */}
-              <div className="mx-auto w-12 h-12 flex items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 mb-4 animate-bounce">
-                <CheckCircle className="w-6 h-6" />
+              {/* Status Icon */}
+              <div className={`mx-auto w-12 h-12 flex items-center justify-center rounded-full mb-4 ${
+                alertModal.type === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' :
+                alertModal.type === 'error' ? 'bg-red-500/10 border border-red-500/30 text-red-400' :
+                'bg-purple-500/10 border border-purple-500/30 text-purple-400'
+              }`}>
+                {alertModal.type === 'success' && <CheckCircle className="w-6 h-6" />}
+                {alertModal.type === 'error' && <XCircle className="w-6 h-6" />}
+                {(!alertModal.type || alertModal.type === 'info') && <Info className="w-6 h-6" />}
               </div>
 
-              <h3 className="font-serif font-light text-md text-white tracking-wide mb-1">
-                Added to Order
+              <h3 className="font-serif font-light text-md text-white tracking-wide mb-2">
+                {alertModal.title}
               </h3>
               
-              <p className="text-xs text-gray-400 leading-relaxed px-2 mb-6">
-                You added <span className="text-purple-400 font-semibold">{cartNotification.quantity}x</span> of <span className="text-slate-100 font-bold">"{cartNotification.itemName}"</span> to your active delivery tray.
+              <p className="text-xs text-gray-400 leading-relaxed px-2 mb-6 whitespace-pre-line">
+                {alertModal.message}
               </p>
 
-              <div className="flex flex-col gap-2.5">
-                <button
-                  onClick={() => {
-                    closeCartNotification();
-                    setActivePage('cart');
-                  }}
-                  className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-lg shadow-purple-600/25 transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>View Tray & Checkout</span>
-                </button>
-                <button
-                  onClick={closeCartNotification}
-                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-white/10 transition-colors cursor-pointer"
-                >
-                  Continue Browsing
-                </button>
-              </div>
+              <button
+                onClick={hideAlert}
+                className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-lg shadow-purple-600/25 transition-all cursor-pointer"
+              >
+                Acknowledge
+              </button>
             </motion.div>
           </div>
         )}

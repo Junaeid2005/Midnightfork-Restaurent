@@ -10,7 +10,7 @@ export const Menu: React.FC = () => {
     selectedCategory, setSelectedCategory, 
     searchQuery, setSearchQuery,
     wishlist, toggleWishlist,
-    theme, showCartNotification
+    theme, setActivePage
   } = useStore();
 
   const isLight = theme === 'light';
@@ -43,7 +43,7 @@ export const Menu: React.FC = () => {
     addToCart(item, qty);
     // Reset quantity
     setQuantities(prev => ({ ...prev, [item.id]: 1 }));
-    showCartNotification(item.name, qty);
+    setActivePage('cart');
   };
 
   // Ask Gemini AI for Recommendations

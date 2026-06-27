@@ -5,7 +5,7 @@ import { OrderStatus } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Checkout: React.FC = () => {
-  const { cart, clearCart, currentUser, placeOrder, submitPaymentVerification, settings, setCurrentTrackingOrderId, setActivePage } = useStore();
+  const { cart, clearCart, currentUser, placeOrder, submitPaymentVerification, settings, setCurrentTrackingOrderId, setActivePage, showAlert } = useStore();
 
   const [name, setName] = useState(currentUser?.displayName || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
@@ -46,15 +46,15 @@ export const Checkout: React.FC = () => {
           const lng = position.coords.longitude;
           const gMapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
           setLocationLink(gMapsLink);
-          alert('Coordinates synced! Google Maps Location URL populated successfully.');
+          showAlert('Location Synced', 'Coordinates synced! Google Maps Location URL populated successfully.', 'success');
         },
         (error) => {
           console.error(error);
-          alert('Geolocation failed or permission denied. Please paste your Google Maps URL manually.');
+          showAlert('Location Error', 'Geolocation failed or permission denied. Please paste your Google Maps URL manually.', 'error');
         }
       );
     } else {
-      alert('Geolocation is not supported by your browser. Please paste your Google Maps URL manually.');
+      showAlert('Unsupported Browser', 'Geolocation is not supported by your browser. Please paste your Google Maps URL manually.', 'error');
     }
   };
 
@@ -125,7 +125,7 @@ export const Checkout: React.FC = () => {
         bKashSender
       });
 
-      alert('bKash particulars submitted successfully! An administrator is verifying your receipt.');
+      showAlert('Receipt Submitted', 'bKash particulars submitted successfully! An administrator is verifying your receipt.', 'success');
       clearCart();
       setCurrentTrackingOrderId(createdOrder.id);
       setActivePage('tracking'); // Redirect to tracking timeline

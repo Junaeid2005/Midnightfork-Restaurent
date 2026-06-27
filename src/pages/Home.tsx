@@ -5,7 +5,7 @@ import { ArrowRight, Calendar, Sparkles, Clock, Compass, Award, ShieldCheck, Mes
 import { motion } from 'motion/react';
 
 export const Home: React.FC = () => {
-  const { settings, setActivePage, setSelectedCategory, menuItems, addToCart, theme, showCartNotification } = useStore();
+  const { settings, setActivePage, setSelectedCategory, menuItems, addToCart, theme } = useStore();
   const isLight = theme === 'light';
 
   const featuredItems = menuItems.filter(item => item.isFeatured && item.isAvailable).slice(0, 3);
@@ -255,7 +255,7 @@ export const Home: React.FC = () => {
                     <button
                       onClick={() => {
                         addToCart(item, 1);
-                        showCartNotification(item.name, 1);
+                        setActivePage('cart');
                       }}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer"
                     >
