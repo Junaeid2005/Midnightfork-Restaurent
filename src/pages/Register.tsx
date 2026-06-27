@@ -101,38 +101,52 @@ export const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // Call our secure custom email backend to dispatch the verification link
-      const response = await fetch('/api/send-verification-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          email: email.trim().toLowerCase(),
-          password,
-          phone,
-          address,
-          origin: window.location.origin
-        }),
-      });
+      // Step 1: Create Firebase Auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const fUser = userCredential.user;
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to dispatch verification email.');
-      }
+      // Step 2: Update display name
+      await updateProfile(fUser, { displayName: name });
+
+      // Step 3: Save user document to Firestore
+      const newUserDoc = {
+        uid: fUser.uid,
+        email: email.trim().toLowerCase(),
+        displayName: name,
+        role: 'customer' as const,
+        phone,
+        address,
+        savedAddresses: address ? [address] : [],
+        createdAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'users', fUser.uid), newUserDoc);
+
+      // Step 4: Send Firebase Auth Verification Email
+      await sendEmailVerification(fUser);
+
+      // Step 5: Immediately sign out to prevent auto login
+      await signOut(auth);
 
       setLinkSent(true);
 
       // Trigger Welcome simulated/real notification email
-      sendNotificationEmail(email, 'registration_welcome', { 
+      sendNotificationEmail(email.trim().toLowerCase(), 'registration_welcome', { 
         customerName: name, 
-        id: 'PATRON-' + Math.random().toString(36).substring(2, 7).toUpperCase()
+        id: 'PATRON-' + fUser.uid.slice(0, 5).toUpperCase()
       });
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Registration failed. Please check your SMTP configuration or connection.');
+      let errMsg = 'Registration failed. Please check your credentials or connection.';
+      if (err.code === 'auth/email-already-in-use') {
+        errMsg = 'This email address is already in use by another patron account.';
+      } else if (err.code === 'auth/weak-password') {
+        errMsg = 'The password is too weak. Please choose a stronger password.';
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -171,7 +185,7 @@ export const Register: React.FC = () => {
             </div>
             
             <p className={`text-sm leading-relaxed ${isLight ? 'text-slate-700' : 'text-gray-300'}`}>
-              We have sent you a verification email to <span className="text-purple-400 font-semibold">{email}</span>. Verify it and log in.
+              We have sent you a verification email to <span className="text-purple-400 font-semibold">{email}</span>.Verify it and log in.
             </p>
 
             <button

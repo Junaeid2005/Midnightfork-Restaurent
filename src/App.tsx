@@ -27,10 +27,7 @@ import { TermsConditions } from './pages/TermsConditions';
 export default function App() {
   const { activePage, syncFromFirebase, currentUser, theme, authLoading } = useStore();
 
-  // States for verification link processing
-  const [verifyingStatus, setVerifyingStatus] = useState<string | null>(null);
-  const [verifyingError, setVerifyingError] = useState<string | null>(null);
-  const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
+
 
   // Listen to Firebase authentication state on startup to retain session after refresh
   useEffect(() => {
@@ -81,82 +78,7 @@ export default function App() {
     };
   }, []);
 
-  // Process verify-token query parameter from URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('verify-token');
-    if (!token) return;
 
-    const performVerification = async () => {
-      setVerifyingStatus("Verifying your registration token...");
-      setVerifyingError(null);
-      setVerificationSuccess(null);
-
-      try {
-        // Step 1: Verify token with server backend
-        const res = await fetch('/api/verify-registration-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || "Invalid or expired verification token.");
-        }
-
-        // Step 2: Register user in Firebase Authentication
-        setVerifyingStatus("Securing credentials and creating account...");
-        const { name, email, password, phone, address } = data.registration;
-
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const fUser = userCredential.user;
-
-        // Step 3: Update Auth profile
-        await updateProfile(fUser, { displayName: name });
-
-        // Step 4: Write Firestore user doc with bypass verification enabled
-        setVerifyingStatus("Enrolling patron profile in Firestore...");
-        const newUserDoc = {
-          uid: fUser.uid,
-          email,
-          displayName: name,
-          role: 'customer' as const,
-          phone,
-          address,
-          emailVerified: true,
-          savedAddresses: address ? [address] : [],
-          createdAt: new Date().toISOString()
-        };
-        await setDoc(doc(db, 'users', fUser.uid), newUserDoc);
-
-        // Success - log them in
-        useStore.getState().setUser({
-          uid: fUser.uid,
-          email,
-          displayName: name,
-          role: 'customer',
-          phone,
-          address
-        });
-
-        setVerificationSuccess("Your email address was successfully verified! Welcome to Midnight Fork.");
-        
-        // Clear query parameter
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete('verify-token');
-        window.history.replaceState({}, document.title, cleanUrl.toString());
-
-      } catch (err: any) {
-        console.error("Verification failed:", err);
-        setVerifyingError(err.message || "Failed to complete email verification.");
-      } finally {
-        setVerifyingStatus(null);
-      }
-    };
-
-    performVerification();
-  }, []);
 
   // Run real-time Firestore sync on mount and whenever user authorization changes
   useEffect(() => {
@@ -213,65 +135,7 @@ export default function App() {
     }
   };
 
-  const renderVerificationOverlay = () => {
-    if (!verifyingStatus && !verifyingError && !verificationSuccess) return null;
 
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]/95 backdrop-blur-md px-4 font-sans text-xs">
-        <div className="max-w-md w-full bg-[#121212] border border-white/10 p-8 rounded-2xl text-center shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 blur-3xl rounded-full"></div>
-          
-          {verifyingStatus && (
-            <div className="space-y-6">
-              <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
-              </div>
-              <h2 className="text-base font-serif font-light text-white tracking-tight">Email Verification in Progress</h2>
-              <p className="text-gray-400 leading-relaxed text-xs">{verifyingStatus}</p>
-            </div>
-          )}
-
-          {verifyingError && (
-            <div className="space-y-6">
-              <div className="w-16 h-16 mx-auto flex items-center justify-center rounded-full bg-red-950/40 border border-red-500/20 text-red-400">
-                <ShieldAlert className="w-8 h-8" />
-              </div>
-              <h2 className="text-base font-serif font-light text-white tracking-tight">Verification Failed</h2>
-              <p className="text-red-400/80 leading-relaxed text-xs">{verifyingError}</p>
-              <button
-                onClick={() => {
-                  setVerifyingError(null);
-                  useStore.getState().setActivePage('register');
-                }}
-                className="w-full py-3 bg-red-900/30 hover:bg-red-900/50 text-red-200 font-semibold uppercase tracking-widest rounded-lg border border-red-500/30 transition-colors cursor-pointer text-[10px]"
-              >
-                Go to Registration
-              </button>
-            </div>
-          )}
-
-          {verificationSuccess && (
-            <div className="space-y-6">
-              <div className="w-16 h-16 mx-auto flex items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                <Award className="w-8 h-8 animate-pulse" />
-              </div>
-              <h2 className="text-base font-serif font-light text-white tracking-tight">Welcome, Verified Patron!</h2>
-              <p className="text-purple-300 leading-relaxed text-xs">{verificationSuccess}</p>
-              <button
-                onClick={() => {
-                  setVerificationSuccess(null);
-                  useStore.getState().setActivePage('home');
-                }}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold uppercase tracking-widest rounded-lg shadow-lg shadow-purple-600/20 transition-colors cursor-pointer text-[10px]"
-              >
-                Access Concierge
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   if (authLoading) {
     return (
@@ -295,7 +159,7 @@ export default function App() {
         ? 'bg-[#050505] text-white' 
         : 'bg-[#faf9fc] text-slate-900'
     }`}>
-      {renderVerificationOverlay()}
+
       {/* Sticky Premium Header Navigation */}
       <Navbar />
 
