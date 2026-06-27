@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Mail, Lock, User, AlertCircle, Phone, MapPin, LogIn } from 'lucide-react';
 
 export const Register: React.FC = () => {
@@ -101,15 +101,6 @@ export const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // Check if email already exists in Firestore (since uid is random but email is unique)
-      const q = query(collection(db, 'users'), where('email', '==', email.trim().toLowerCase()));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setError('This email address is already in use by another patron account.');
-        setLoading(false);
-        return;
-      }
-
       // Call our secure custom email backend to dispatch the verification link
       const response = await fetch('/api/send-verification-link', {
         method: 'POST',
