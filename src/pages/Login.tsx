@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Mail, Lock, LogIn, AlertCircle, Sparkles, User, ShieldAlert } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -50,6 +50,14 @@ export const Login: React.FC = () => {
         } else {
           throw signInErr;
         }
+      }
+
+      // Check if email is verified. Bypass for demo accounts (admin@midnightfork.com or shohan@test.com)
+      if (!fUser.emailVerified && fUser.email !== 'admin@midnightfork.com' && fUser.email !== 'shohan@test.com') {
+        await signOut(auth);
+        setError('Your email is not verified yet. We have sent a verification email to ' + fUser.email + '. Please check your inbox, verify it, and then log in.');
+        setLoading(false);
+        return;
       }
 
       // Check user role in firestore

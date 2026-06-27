@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { Mail, Lock, User, PlusCircle, AlertCircle, Phone, MapPin, KeyRound, ArrowLeft, RefreshCw, ExternalLink } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, Phone, MapPin, LogIn } from 'lucide-react';
 
 export const Register: React.FC = () => {
-  const { setUser, setActivePage, sendNotificationEmail, theme } = useStore();
+  const { setActivePage, sendNotificationEmail, theme } = useStore();
   const isLight = theme === 'light';
 
   // Form Fields
@@ -19,14 +19,12 @@ export const Register: React.FC = () => {
 
   // Registration states
   const [linkSent, setLinkSent] = useState(false);
-  const [simulatedUrl, setSimulatedUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSendVerificationLink = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSimulatedUrl('');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match. Please verify.');
@@ -41,34 +39,53 @@ export const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/send-verification-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          phone,
-          address,
-          origin: window.location.origin
-        }),
+      // Step 1: Create Firebase Auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const fUser = userCredential.user;
+
+      // Step 2: Update display name
+      await updateProfile(fUser, { displayName: name });
+
+      // Step 3: Save user document to Firestore
+      const newUserDoc = {
+        uid: fUser.uid,
+        email: fUser.email || '',
+        displayName: name,
+        role: 'customer' as const,
+        phone,
+        address,
+        savedAddresses: address ? [address] : [],
+        createdAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'users', fUser.uid), newUserDoc);
+
+      // Step 4: Send Firebase Auth Verification Email
+      await sendEmailVerification(fUser);
+
+      // Step 5: Immediately sign out to prevent auto login
+      await signOut(auth);
+
+      // Step 6: Show verification screen
+      setLinkSent(true);
+
+      // Trigger Welcome simulated email
+      sendNotificationEmail(email, 'registration_welcome', { 
+        customerName: name, 
+        id: 'PATRON-' + fUser.uid.slice(0, 5).toUpperCase() 
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        setLinkSent(true);
-        if (data.isTestAccount && data.previewUrl) {
-          setSimulatedUrl(data.previewUrl);
-        }
-      } else {
-        setError(data.message || 'Failed to dispatch verification link. Please try again.');
-      }
     } catch (err: any) {
       console.error(err);
-      setError('Connection to email server failed. Please check your internet or try again later.');
+      let errMsg = 'Registration failed. Please check your credentials or connection.';
+      if (err.code === 'auth/email-already-in-use') {
+        errMsg = 'This email address is already in use by another patron account.';
+      } else if (err.code === 'auth/weak-password') {
+        errMsg = 'The password is too weak. Please choose a stronger password.';
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -100,42 +117,27 @@ export const Register: React.FC = () => {
           </div>
         )}
 
-        {linkSent && (
-          <div className="p-4 bg-purple-950/20 border border-purple-500/20 rounded-xl text-purple-200 text-xs text-center space-y-3 mb-6">
-            <Mail className="w-8 h-8 mx-auto text-purple-400 animate-bounce" />
-            <p className="font-bold text-sm">Verification Link Dispatched!</p>
-            <p className="text-[11px] leading-relaxed text-gray-400">
-              A secure verification link has been sent to <span className="text-purple-400 font-semibold">{email}</span>.
-              Please click the link in your email to instantly verify your email and enroll your patron account.
+        {linkSent ? (
+          <div className="space-y-6 text-center py-4">
+            <div className="relative w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-purple-500/10 text-purple-400">
+              <Mail className="w-8 h-8 animate-bounce" />
+            </div>
+            
+            <p className={`text-sm leading-relaxed ${isLight ? 'text-slate-700' : 'text-gray-300'}`}>
+              We have sent you a verification email to <span className="text-purple-400 font-semibold">{email}</span>. Verify it and log in.
             </p>
-          </div>
-        )}
 
-        {simulatedUrl && (
-          <div className="p-3 bg-purple-950/30 border border-purple-500/20 rounded-lg text-purple-300 text-[11px] mb-6 space-y-2">
-            <p className="font-bold flex items-center gap-1.5 text-purple-400">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-              </span>
-              Sandbox Environment Email Link:
-            </p>
-            <p>Real SMTP is not configured. Click the button below to view the sandbox email and verify your registration:</p>
-            <a
-              href={simulatedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded font-bold text-[10px] uppercase tracking-wider transition-all animate-pulse"
+            <button
+              onClick={() => setActivePage('login')}
+              className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-purple-600/15 flex items-center justify-center gap-2 transition-transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer font-bold"
             >
-              <span>View Sandbox Email & Verify</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login</span>
+            </button>
           </div>
-        )}
-
-        {!linkSent ? (
+        ) : (
           /* Account Information Details Form */
-          <form onSubmit={handleSendVerificationLink} className="space-y-4 text-xs">
+          <form onSubmit={handleRegister} className="space-y-4 text-xs">
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Full Name *</label>
               <div className="relative">
@@ -256,31 +258,9 @@ export const Register: React.FC = () => {
               className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-purple-600/15 flex items-center justify-center gap-2 transition-transform hover:scale-[1.01] mt-4 cursor-pointer font-bold"
             >
               <Mail className="w-3.5 h-3.5 animate-pulse" />
-              <span>{loading ? 'Sending Verification Link...' : 'Send Verification Link'}</span>
+              <span>{loading ? 'Creating Account...' : 'Enroll Account'}</span>
             </button>
           </form>
-        ) : (
-          /* Step 2: Inform the user and let them modify if they want to edit details */
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => setLinkSent(false)}
-              className="w-full py-3 bg-transparent border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-500/5 text-purple-400 font-medium text-[10px] uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Edit Account Details</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSendVerificationLink}
-              disabled={loading}
-              className="w-full py-3 bg-transparent hover:bg-purple-500/5 text-gray-400 hover:text-purple-400 font-medium text-[10px] uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-55 cursor-pointer"
-            >
-              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-              <span>Resend Verification Link</span>
-            </button>
-          </div>
         )}
 
         {/* Footer links */}
