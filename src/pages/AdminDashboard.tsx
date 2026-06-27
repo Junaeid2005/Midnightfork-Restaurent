@@ -4,7 +4,7 @@ import { MenuItem, OrderStatus, ReservationStatus, WebsiteSettings } from '../ty
 import { 
   ShieldCheck, DollarSign, ShoppingCart, Calendar, Users, 
   MapPin, Plus, Edit2, Trash2, Check, X, Search, Filter, 
-  Settings, Sparkles, Sliders, FileText, CheckCircle2, ChevronRight, HelpCircle
+  Settings, Sparkles, Sliders, FileText, CheckCircle2, ChevronRight, ChevronDown, HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -19,6 +19,7 @@ export const AdminDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
 
   // New Menu Item Form States
   const [showAddForm, setShowAddForm] = useState(false);
@@ -310,53 +311,170 @@ export const AdminDashboard: React.FC = () => {
                       <td colSpan={6} className="text-center py-12 text-gray-500">No matching orders in database.</td>
                     </tr>
                   ) : (
-                    filteredOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 font-mono font-bold text-white">{order.id}</td>
-                        <td className="px-6 py-4 space-y-0.5">
-                          <p className="font-semibold text-slate-200">{order.customerName}</p>
-                          <p className="text-[10px] text-gray-500 font-light">{order.phone}</p>
-                        </td>
-                        <td className="px-6 py-4 text-purple-300 font-bold">${order.total.toFixed(2)}</td>
-                        <td className="px-6 py-4 font-mono text-[10px]">
-                          {order.bKashTrxId ? (
-                            <div className="space-y-0.5">
-                              <p className="text-slate-300 font-semibold">TrxID: {order.bKashTrxId}</p>
-                              <p className="text-gray-500">Sender: {order.bKashSender}</p>
-                            </div>
-                          ) : (
-                            <span className="text-gray-600 italic font-light">No payment sent</span>
+                    filteredOrders.map((order) => {
+                      const isExpanded = expandedOrders[order.id] !== false;
+                      return (
+                        <React.Fragment key={order.id}>
+                          <tr className="hover:bg-white/5 border-b border-white/5 transition-colors">
+                            <td className="px-6 py-4">
+                              <button 
+                                onClick={() => setExpandedOrders(prev => ({ ...prev, [order.id]: !isExpanded }))}
+                                className="flex items-center gap-1.5 font-mono font-bold text-white hover:text-purple-400 transition-colors cursor-pointer"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4 text-purple-500" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                                )}
+                                <span>{order.id}</span>
+                              </button>
+                            </td>
+                            <td className="px-6 py-4 space-y-0.5">
+                              <p className="font-semibold text-slate-200">{order.customerName}</p>
+                              <p className="text-[10px] text-gray-500 font-light">{order.phone}</p>
+                            </td>
+                            <td className="px-6 py-4 text-purple-300 font-bold">${order.total.toFixed(2)}</td>
+                            <td className="px-6 py-4 font-mono text-[10px]">
+                              {order.bKashTrxId ? (
+                                <div className="space-y-0.5">
+                                  <p className="text-slate-300 font-semibold">TrxID: {order.bKashTrxId}</p>
+                                  <p className="text-gray-500">Sender: {order.bKashSender}</p>
+                                </div>
+                              ) : (
+                                <span className="text-gray-600 italic font-light">No payment sent</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold tracking-widest uppercase block w-fit ${
+                                order.status === 'PAID' ? 'bg-blue-950/40 text-blue-400 border border-blue-800/30' :
+                                order.status === 'PREPARING' ? 'bg-purple-950/40 text-purple-400 border border-purple-800/30' :
+                                order.status === 'DELIVERED' ? 'bg-green-950/40 text-green-400 border border-green-800/30' :
+                                'bg-white/5 text-gray-400 border border-white/10'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <select
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                                className="bg-[#050505] border border-white/10 text-[10px] rounded px-2.5 py-1.5 focus:outline-none focus:border-purple-600 text-slate-100 cursor-pointer"
+                              >
+                                <option value="PENDING PAYMENT" className="bg-[#050505]">Pending Payment</option>
+                                <option value="PENDING PAYMENT VERIFICATION" className="bg-[#050505]">Verification Queue</option>
+                                <option value="PAID" className="bg-[#050505]">Confirm Paid</option>
+                                <option value="PREPARING" className="bg-[#050505]">Start Preparing</option>
+                                <option value="READY" className="bg-[#050505]">Mark Ready</option>
+                                <option value="OUT FOR DELIVERY" className="bg-[#050505]">Out For Delivery</option>
+                                <option value="DELIVERED" className="bg-[#050505]">Delivered</option>
+                                <option value="CANCELLED" className="bg-[#050505]">Cancel Order</option>
+                              </select>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Order Items & Delivery parameters breakdown */}
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan={6} className="bg-white/[0.02] px-8 py-5 border-b border-white/10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
+                                  {/* LEFT COLUMN: Items Ordered list */}
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-1.5 text-purple-400 font-extrabold tracking-wider uppercase text-[10px]">
+                                      <ShoppingCart className="w-3.5 h-3.5" />
+                                      <span>Items Ordered ({order.items?.length || 0})</span>
+                                    </div>
+                                    <div className="bg-[#050505]/40 border border-white/5 rounded-xl p-4 space-y-2.5">
+                                      {order.items && order.items.length > 0 ? (
+                                        order.items.map((item, index) => (
+                                          <div key={index} className="flex justify-between items-center py-1.5 border-b border-white/5 last:border-0">
+                                            <div>
+                                              <span className="text-white font-medium text-[11px]">{item.menuItem?.name || 'Artisanal Delight'}</span>
+                                              <span className="text-purple-400 font-extrabold ml-2 font-mono text-[10px]">x{item.quantity}</span>
+                                            </div>
+                                            <span className="text-gray-400 font-mono text-[11px]">${((item.menuItem?.price || 0) * item.quantity).toFixed(2)}</span>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <p className="text-gray-500 italic text-xs">No items linked with this order record.</p>
+                                      )}
+                                      
+                                      {/* Subtotal calculation */}
+                                      <div className="pt-2.5 mt-2.5 border-t border-white/10 text-[10px] text-gray-400 space-y-1 font-mono">
+                                        <div className="flex justify-between">
+                                          <span>Subtotal:</span>
+                                          <span>${(order.subtotal || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Delivery Charge:</span>
+                                          <span>${(order.deliveryFee || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-purple-300 font-extrabold">
+                                          <span>Grand Total:</span>
+                                          <span>${(order.total || 0).toFixed(2)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* RIGHT COLUMN: Full Delivery Info */}
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-1.5 text-purple-400 font-extrabold tracking-wider uppercase text-[10px]">
+                                      <MapPin className="w-3.5 h-3.5" />
+                                      <span>Delivery Destination & Details</span>
+                                    </div>
+                                    <div className="bg-[#050505]/40 border border-white/5 rounded-xl p-4 space-y-3">
+                                      <div className="space-y-1">
+                                        <span className="text-gray-500 text-[9px] uppercase font-bold tracking-wider block">Address:</span>
+                                        <p className="text-white text-xs leading-relaxed font-medium">{order.address}</p>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 gap-4 text-xs">
+                                        <div>
+                                          <span className="text-gray-500 text-[9px] uppercase font-bold tracking-wider block">Area:</span>
+                                          <span className="text-slate-200 font-semibold">{order.area || "N/A"}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500 text-[9px] uppercase font-bold tracking-wider block">City / Postcode:</span>
+                                          <span className="text-slate-200 font-semibold">{order.city || "Dhaka"}{order.postalCode ? ` (${order.postalCode})` : ''}</span>
+                                        </div>
+                                      </div>
+
+                                      {order.notes && (
+                                        <div className="pt-1 border-t border-white/5">
+                                          <span className="text-gray-500 text-[9px] uppercase font-bold tracking-wider block">Kitchen Order Notes:</span>
+                                          <p className="text-gray-300 italic text-[11px]">"{order.notes}"</p>
+                                        </div>
+                                      )}
+
+                                      {order.locationNotes && (
+                                        <div className="pt-1">
+                                          <span className="text-gray-500 text-[9px] uppercase font-bold tracking-wider block">Rider Delivery Instructions:</span>
+                                          <p className="text-gray-400 italic text-[11px]">"{order.locationNotes}"</p>
+                                        </div>
+                                      )}
+
+                                      {order.locationLink && (
+                                        <div className="pt-2 border-t border-white/5">
+                                          <a 
+                                            href={order.locationLink}
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-900/20 hover:bg-purple-800 text-purple-400 hover:text-white border border-purple-800/30 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all"
+                                          >
+                                            <MapPin className="w-3 h-3 text-purple-400" />
+                                            <span>Open GPS Location Link</span>
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold tracking-widest uppercase block w-fit ${
-                            order.status === 'PAID' ? 'bg-blue-950/40 text-blue-400 border border-blue-800/30' :
-                            order.status === 'PREPARING' ? 'bg-purple-950/40 text-purple-400 border border-purple-800/30' :
-                            order.status === 'DELIVERED' ? 'bg-green-950/40 text-green-400 border border-green-800/30' :
-                            'bg-white/5 text-gray-400 border border-white/10'
-                          }`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <select
-                            value={order.status}
-                            onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                            className="bg-[#050505] border border-white/10 text-[10px] rounded px-2.5 py-1.5 focus:outline-none focus:border-purple-600 text-slate-100 cursor-pointer"
-                          >
-                            <option value="PENDING PAYMENT" className="bg-[#050505]">Pending Payment</option>
-                            <option value="PENDING PAYMENT VERIFICATION" className="bg-[#050505]">Verification Queue</option>
-                            <option value="PAID" className="bg-[#050505]">Confirm Paid</option>
-                            <option value="PREPARING" className="bg-[#050505]">Start Preparing</option>
-                            <option value="READY" className="bg-[#050505]">Mark Ready</option>
-                            <option value="OUT FOR DELIVERY" className="bg-[#050505]">Out For Delivery</option>
-                            <option value="DELIVERED" className="bg-[#050505]">Delivered</option>
-                            <option value="CANCELLED" className="bg-[#050505]">Cancel Order</option>
-                          </select>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                        </React.Fragment>
+                      );
+                    }))}
                 </tbody>
               </table>
             </div>

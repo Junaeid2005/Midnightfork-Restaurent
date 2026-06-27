@@ -78,6 +78,7 @@ interface AppState {
   emails: EmailNotification[];
   wishlist: string[];
   currentTrackingOrderId: string | null;
+  cartNotification: { itemName: string; quantity: number } | null;
 
   // Search & Filter
   selectedCategory: string;
@@ -91,6 +92,8 @@ interface AppState {
   setSearchQuery: (query: string) => void;
   toggleWishlist: (itemId: string) => void;
   setCurrentTrackingOrderId: (id: string | null) => void;
+  showCartNotification: (itemName: string, quantity: number) => void;
+  closeCartNotification: () => void;
 
   // Cart Actions
   addToCart: (item: MenuItem, quantity: number) => void;
@@ -173,6 +176,7 @@ export const useStore = create<AppState>((set, get) => {
     emails: [],
     wishlist: [],
     currentTrackingOrderId: null,
+    cartNotification: null,
 
     // Search & Filter
     selectedCategory: 'All',
@@ -194,6 +198,8 @@ export const useStore = create<AppState>((set, get) => {
     setSelectedCategory: (category) => set({ selectedCategory: category }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setCurrentTrackingOrderId: (id) => set({ currentTrackingOrderId: id }),
+    showCartNotification: (itemName, quantity) => set({ cartNotification: { itemName, quantity } }),
+    closeCartNotification: () => set({ cartNotification: null }),
 
     toggleWishlist: (itemId) => {
       const { wishlist } = get();
