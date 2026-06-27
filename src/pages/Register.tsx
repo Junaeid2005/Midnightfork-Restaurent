@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../store';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { Mail, Lock, User, AlertCircle, Phone, MapPin, LogIn } from 'lucide-react';
 
 export const Register: React.FC = () => {
@@ -101,53 +101,47 @@ export const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // Step 1: Create Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const fUser = userCredential.user;
+      // Check if email already exists in Firestore (since uid is random but email is unique)
+      const q = query(collection(db, 'users'), where('email', '==', email.trim().toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setError('This email address is already in use by another patron account.');
+        setLoading(false);
+        return;
+      }
 
-      // Step 2: Update display name
-      await updateProfile(fUser, { displayName: name });
+      // Call our secure custom email backend to dispatch the verification link
+      const response = await fetch('/api/send-verification-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email: email.trim().toLowerCase(),
+          password,
+          phone,
+          address,
+          origin: window.location.origin
+        }),
+      });
 
-      // Step 3: Save user document to Firestore
-      const newUserDoc = {
-        uid: fUser.uid,
-        email: fUser.email || '',
-        displayName: name,
-        role: 'customer' as const,
-        phone,
-        address,
-        savedAddresses: address ? [address] : [],
-        createdAt: new Date().toISOString()
-      };
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to dispatch verification email.');
+      }
 
-      await setDoc(doc(db, 'users', fUser.uid), newUserDoc);
-
-      // Step 4: Send Firebase Auth Verification Email
-      await sendEmailVerification(fUser);
-
-      // Step 5: Immediately sign out to prevent auto login
-      await signOut(auth);
-
-      // Step 6: Show verification screen
       setLinkSent(true);
 
-      // Trigger Welcome simulated email
+      // Trigger Welcome simulated/real notification email
       sendNotificationEmail(email, 'registration_welcome', { 
         customerName: name, 
-        id: 'PATRON-' + fUser.uid.slice(0, 5).toUpperCase() 
+        id: 'PATRON-' + Math.random().toString(36).substring(2, 7).toUpperCase()
       });
 
     } catch (err: any) {
       console.error(err);
-      let errMsg = 'Registration failed. Please check your credentials or connection.';
-      if (err.code === 'auth/email-already-in-use') {
-        errMsg = 'This email address is already in use by another patron account.';
-      } else if (err.code === 'auth/weak-password') {
-        errMsg = 'The password is too weak. Please choose a stronger password.';
-      } else if (err.message) {
-        errMsg = err.message;
-      }
-      setError(errMsg);
+      setError(err.message || 'Registration failed. Please check your SMTP configuration or connection.');
     } finally {
       setLoading(false);
     }

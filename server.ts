@@ -44,6 +44,9 @@ async function sendEmailHelper(to: string, subject: string, body: string) {
           user: smtpUser,
           pass: smtpPass,
         },
+        tls: {
+          rejectUnauthorized: false
+        }
       });
       console.log(`Using custom SMTP transport: ${smtpHost}:${smtpPort}`);
     } else {
@@ -96,8 +99,12 @@ async function sendEmailHelper(to: string, subject: string, body: string) {
       } else {
         console.log(`Real Email Sent! Message ID: ${info.messageId}`);
       }
-    } catch (sendErr) {
-      console.warn("Failed to send mail via transport. Falling back to offline local simulation.", sendErr);
+    } catch (sendErr: any) {
+      console.error("Failed to send mail via custom SMTP transport:", sendErr);
+      if (!isTestAccount) {
+        // If they configured real SMTP, we should propagate the error so they know why it failed
+        throw new Error(`SMTP Send Failure: ${sendErr.message || sendErr}`);
+      }
       isTestAccount = true;
       previewUrl = fallbackUrl;
     }
