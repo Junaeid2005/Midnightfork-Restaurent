@@ -6,8 +6,16 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Stateless in-memory storage for OTP verification codes
-const otpStore = new Map<string, { code: string; expiresAt: number }>();
+// Stateless in-memory storage for pending email registration links
+const verificationStore = new Map<string, { 
+  token: string; 
+  name: string; 
+  email: string; 
+  password: string; 
+  phone: string; 
+  address: string; 
+  expiresAt: number; 
+}>();
 
 async function sendEmailHelper(to: string, subject: string, body: string) {
   const smtpHost = process.env.SMTP_HOST;
@@ -109,39 +117,50 @@ async function startServer() {
     }
   });
 
-  // API Route to generate and send verification OTP
-  app.post("/api/send-otp", async (req, res) => {
-    const { email } = req.body;
+  // API Route to generate and send verification email link
+  app.post("/api/send-verification-link", async (req, res) => {
+    const { name, email, password, phone, address, origin } = req.body;
 
-    if (!email) {
+    if (!email || !password || !name) {
       return res.status(400).json({ 
         success: false, 
-        message: "Email address is required." 
+        message: "Name, email address, and password are required." 
       });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
+    
+    // Generate a secure, unique token for this registration attempt
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiresAt = Date.now() + 15 * 60 * 1000; // valid for 15 minutes
 
-    // Generate random 6-digit OTP code
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // Code valid for 5 minutes
+    // Store pending registration details in memory
+    verificationStore.set(token, {
+      token,
+      name,
+      email: trimmedEmail,
+      password,
+      phone: phone || "",
+      address: address || "",
+      expiresAt
+    });
 
-    // Store OTP in memory
-    otpStore.set(trimmedEmail, { code: otpCode, expiresAt });
+    const clientOrigin = origin || "http://localhost:3000";
+    const verificationLink = `${clientOrigin}/?verify-token=${token}`;
 
-    const subject = "Midnight Fork - Account Verification Code";
-    const body = `Welcome to Midnight Fork late-night dining patron program!\n\nYour 6-digit account verification code is:\n\n${otpCode}\n\nThis verification code is valid for 5 minutes. Please use it to complete your enrollment. If you did not request this, please ignore this email.`;
+    const subject = "Midnight Fork - Verify Your Account Registration";
+    const body = `Welcome to the Midnight Fork late-night dining patron program!\n\nPlease click the link below to verify your email and complete your enrollment:\n\n${verificationLink}\n\nThis verification link is valid for 15 minutes. If you did not request this, please ignore this email.`;
 
     try {
       const result = await sendEmailHelper(trimmedEmail, subject, body);
       return res.status(200).json({
         success: true,
-        message: result.isTestAccount ? "Simulated verification code sent!" : "Verification code sent successfully!",
+        message: result.isTestAccount ? "Simulated verification link sent!" : "Verification link sent successfully!",
         isTestAccount: result.isTestAccount,
         previewUrl: result.previewUrl,
       });
     } catch (error: any) {
-      console.error("Failed to dispatch OTP email:", error);
+      console.error("Failed to dispatch verification email:", error);
       return res.status(500).json({
         success: false,
         message: "Failed to dispatch verification email.",
@@ -150,50 +169,47 @@ async function startServer() {
     }
   });
 
-  // API Route to verify OTP code
-  app.post("/api/verify-otp", async (req, res) => {
-    const { email, code } = req.body;
+  // API Route to verify registration token and retrieve temporary data
+  app.post("/api/verify-registration-token", async (req, res) => {
+    const { token } = req.body;
 
-    if (!email || !code) {
+    if (!token) {
       return res.status(400).json({ 
         success: false, 
-        message: "Email and verification code are required." 
+        message: "Verification token is required." 
       });
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
-    const cleanCode = code.trim();
+    const pending = verificationStore.get(token);
 
-    const storedOtp = otpStore.get(trimmedEmail);
-
-    if (!storedOtp) {
+    if (!pending) {
       return res.status(400).json({
         success: false,
-        message: "No verification code exists for this email address. Please request a new code."
+        message: "Verification link is invalid or has expired. Please register again."
       });
     }
 
-    if (Date.now() > storedOtp.expiresAt) {
-      otpStore.delete(trimmedEmail);
+    if (Date.now() > pending.expiresAt) {
+      verificationStore.delete(token);
       return res.status(400).json({
         success: false,
-        message: "Verification code has expired. Please request a new code."
+        message: "Verification link has expired. Please register again."
       });
     }
 
-    if (storedOtp.code !== cleanCode) {
-      return res.status(400).json({
-        success: false,
-        message: "Incorrect verification code. Please check your email and try again."
-      });
-    }
-
-    // Success - remove from map to prevent reuse
-    otpStore.delete(trimmedEmail);
+    // Success - remove from map to prevent reuse/replay
+    verificationStore.delete(token);
 
     return res.status(200).json({
       success: true,
-      message: "Email verified successfully!"
+      message: "Email verified successfully!",
+      registration: {
+        name: pending.name,
+        email: pending.email,
+        password: pending.password,
+        phone: pending.phone,
+        address: pending.address
+      }
     });
   });
 
