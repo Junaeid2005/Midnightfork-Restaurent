@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store';
 import { sampleReviews, sampleTestimonials, sampleGalleryImages } from '../data/menu';
 import { ArrowRight, Calendar, Sparkles, Clock, Compass, Award, ShieldCheck, MessageSquare, Utensils } from 'lucide-react';
@@ -7,6 +7,16 @@ import { motion } from 'motion/react';
 export const Home: React.FC = () => {
   const { settings, setActivePage, setSelectedCategory, menuItems, addToCart, theme } = useStore();
   const isLight = theme === 'light';
+
+  const [addedStates, setAddedStates] = useState<Record<string, boolean>>({});
+
+  const handleAddToCart = (item: any) => {
+    addToCart(item, 1);
+    setAddedStates(prev => ({ ...prev, [item.id]: true }));
+    setTimeout(() => {
+      setAddedStates(prev => ({ ...prev, [item.id]: false }));
+    }, 1500);
+  };
 
   const featuredItems = menuItems.filter(item => item.isFeatured && item.isAvailable).slice(0, 3);
   
@@ -253,13 +263,14 @@ export const Home: React.FC = () => {
                       {item.category}
                     </span>
                     <button
-                      onClick={() => {
-                        addToCart(item, 1);
-                        setActivePage('cart');
-                      }}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer"
+                      onClick={() => handleAddToCart(item)}
+                      className={`px-4 py-2 text-white rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer ${
+                        addedStates[item.id]
+                          ? 'bg-green-600 hover:bg-green-700 shadow-[0_0_15px_rgba(34,197,94,0.3)]'
+                          : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
                     >
-                      Add To Cart
+                      {addedStates[item.id] ? 'Added!' : 'Add To Cart'}
                     </button>
                   </div>
                 </div>

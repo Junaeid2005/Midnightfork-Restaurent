@@ -16,6 +16,7 @@ export const Menu: React.FC = () => {
   const isLight = theme === 'light';
 
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [addedStates, setAddedStates] = useState<Record<string, boolean>>({});
   
   // AI Recommendation State
   const [moodInput, setMoodInput] = useState('');
@@ -43,7 +44,12 @@ export const Menu: React.FC = () => {
     addToCart(item, qty);
     // Reset quantity
     setQuantities(prev => ({ ...prev, [item.id]: 1 }));
-    setActivePage('cart');
+    
+    // Set added feedback
+    setAddedStates(prev => ({ ...prev, [item.id]: true }));
+    setTimeout(() => {
+      setAddedStates(prev => ({ ...prev, [item.id]: false }));
+    }, 1500);
   };
 
   // Ask Gemini AI for Recommendations
@@ -381,10 +387,23 @@ export const Menu: React.FC = () => {
                       <button
                         onClick={() => handleAddToCartClick(item)}
                         disabled={!item.isAvailable}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 hover:text-white text-white rounded-lg py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
+                        className={`flex-1 disabled:opacity-40 hover:text-white text-white rounded-lg py-2.5 text-[10px] font-bold tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                          addedStates[item.id]
+                            ? 'bg-green-600 hover:bg-green-700 shadow-[0_0_15px_rgba(34,197,94,0.3)]'
+                            : 'bg-purple-600 hover:bg-purple-700'
+                        }`}
                       >
-                        <ShoppingCart className="w-3.5 h-3.5" />
-                        <span>Order for Delivery</span>
+                        {addedStates[item.id] ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-white animate-pulse" />
+                            <span>Added to Tray!</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            <span>Order for Delivery</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
