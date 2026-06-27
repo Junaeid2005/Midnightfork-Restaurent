@@ -51,6 +51,7 @@ export interface Order {
   createdAt: string;
   estimatedDeliveryTime?: string; // e.g., "35 minutes" or "15 minutes"
   lastUpdatedTime: string;
+  userId?: string;
 }
 
 export type ReservationStatus = 'Pending' | 'Approved' | 'Rejected' | 'Completed';

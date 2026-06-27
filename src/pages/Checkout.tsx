@@ -156,7 +156,30 @@ export const Checkout: React.FC = () => {
           <div className="h-[1px] w-16 bg-purple-500/50 mx-auto mt-3 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.8)]"></div>
         </div>
 
-        {cart.length === 0 && step === 1 ? (
+        {!currentUser ? (
+          <div className="text-center py-16 px-6 bg-white/5 border border-white/10 rounded-2xl max-w-md mx-auto backdrop-blur-md relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 blur-3xl rounded-full"></div>
+            <ShieldCheck className="w-12 h-12 text-purple-400 mx-auto mb-4 animate-pulse" />
+            <h2 className="text-lg font-serif text-white mb-2 font-light">Patron Verification Required</h2>
+            <p className="text-gray-400 text-xs leading-relaxed mb-6">
+              To place gourmet orders and enable real-time dispatch tracking, please sign into your verified Midnight Fork patron account.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button 
+                onClick={() => { setActivePage('login'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-[10px] uppercase rounded-lg cursor-pointer tracking-wider transition-colors"
+              >
+                Sign In
+              </button>
+              <button 
+                onClick={() => { setActivePage('register'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-semibold text-[10px] uppercase rounded-lg cursor-pointer tracking-wider transition-colors"
+              >
+                Register Account
+              </button>
+            </div>
+          </div>
+        ) : cart.length === 0 && step === 1 ? (
           <div className="text-center py-12 bg-white/5 border border-white/10 rounded-2xl max-w-sm mx-auto backdrop-blur-md">
             <p className="text-gray-400 text-xs">No active items inside basket to checkout.</p>
             <button onClick={() => setActivePage('menu')} className="mt-4 px-4 py-2 bg-purple-600 text-white font-semibold text-[10px] uppercase rounded-lg cursor-pointer">
@@ -216,11 +239,12 @@ export const Checkout: React.FC = () => {
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      disabled
                       placeholder="jane@example.com"
-                      className="w-full bg-[#050505]/60 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-purple-600 transition-colors"
+                      className="w-full bg-[#050505]/40 border border-white/5 rounded-lg px-4 py-2.5 text-gray-400 cursor-not-allowed focus:outline-none"
                       required
                     />
+                    <p className="text-[9px] text-purple-400/60 mt-1">Locked to your verified patron account email.</p>
                   </div>
 
                   {/* Delivery Location descriptors */}

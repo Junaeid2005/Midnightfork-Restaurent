@@ -291,7 +291,8 @@ export const useStore = create<AppState>((set, get) => {
         status: 'PENDING PAYMENT',
         createdAt: new Date().toISOString(),
         lastUpdatedTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        estimatedDeliveryTime: '30-45 minutes'
+        estimatedDeliveryTime: '30-45 minutes',
+        userId: get().currentUser?.uid
       };
 
       // Save to Firestore
