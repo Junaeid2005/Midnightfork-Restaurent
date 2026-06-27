@@ -320,6 +320,13 @@ export const useStore = create<AppState>((set, get) => {
           lastUpdatedTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         await updateDoc(orderRef, updates);
+        
+        // Dispatch pending payment verification email
+        const snap = await getDoc(orderRef);
+        if (snap.exists()) {
+          const order = snap.data() as Order;
+          get().sendNotificationEmail(order.email, 'pending_payment_verification', order);
+        }
       } catch (err) {
         console.error("Failed to update payment status in Firestore. Saving local state.", err);
         set(state => ({
@@ -336,6 +343,12 @@ export const useStore = create<AppState>((set, get) => {
               : o
           )
         }));
+        
+        // Dispatch offline/local simulation email
+        const localOrder = get().orders.find(o => o.id === orderId);
+        if (localOrder) {
+          get().sendNotificationEmail(localOrder.email, 'pending_payment_verification', localOrder);
+        }
       }
     },
 
