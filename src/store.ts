@@ -457,9 +457,9 @@ export const useStore = create<AppState>((set, get) => {
 
     deleteMenuItem: async (itemId) => {
       try {
-        // We will mock deletion, or delete from Firestore if setup
-        set(state => ({ menuItems: state.menuItems.filter(item => item.id !== itemId) }));
+        await deleteDoc(doc(db, 'menu', itemId));
       } catch (err) {
+        set(state => ({ menuItems: state.menuItems.filter(item => item.id !== itemId) }));
         console.error(err);
       }
     },

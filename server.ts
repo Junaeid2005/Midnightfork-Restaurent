@@ -1,8 +1,7 @@
 import express from "express";
 import path from "path";
-
+import nodemailer from "nodemailer";
 import { createServer as createViteServer } from "vite";
-import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -10,29 +9,69 @@ dotenv.config();
 // Stateless in-memory storage for OTP verification codes
 const otpStore = new Map<string, { code: string; expiresAt: number }>();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 async function sendEmailHelper(to: string, subject: string, body: string) {
-  const { data, error } = await resend.emails.send({
-    from: "Midnight Fork <onboarding@resend.dev>",
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  const smtpSender = process.env.SMTP_SENDER || smtpUser || "no-reply@midnightfork.com";
+
+  let transporter;
+  let isTestAccount = false;
+  let previewUrl = "";
+
+  if (smtpHost && smtpUser && smtpPass) {
+    // Use configured SMTP server
+    transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+    console.log(`Using custom SMTP transport: ${smtpHost}:${smtpPort}`);
+  } else {
+    // Fallback to test account on ethereal.email
+    isTestAccount = true;
+    console.log("SMTP environment variables not configured. Creating Ethereal test account...");
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+  }
+
+  const mailOptions = {
+    from: isTestAccount ? `"Midnight Fork (Simulated)" <${transporter.options.auth?.user}>` : `"Midnight Fork" <${smtpSender}>`,
     to,
     subject,
+    text: body,
     html: body.replace(/\n/g, "<br>"),
-  });
+  };
 
-  if (error) {
-    console.error(error);
-    throw new Error(error.message);
+  const info = await transporter.sendMail(mailOptions);
+
+  if (isTestAccount) {
+    previewUrl = nodemailer.getTestMessageUrl(info) || "";
+    console.log(`Simulated Email Sent! Preview URL: ${previewUrl}`);
+  } else {
+    console.log(`Real Email Sent! Message ID: ${info.messageId}`);
   }
 
   return {
     success: true,
-    messageId: data?.id,
-    isTestAccount: false,
-    previewUrl: "",
+    messageId: info.messageId,
+    isTestAccount,
+    previewUrl,
   };
 }
-
 
 async function startServer() {
   const app = express();
@@ -60,22 +99,14 @@ async function startServer() {
         isTestAccount: result.isTestAccount,
         previewUrl: result.previewUrl,
       });
-    } 
-     catch (error: any) {
-  console.error("========== SMTP ERROR ==========");
-  console.error(error);
-  console.error("Message:", error?.message);
-  console.error("Code:", error?.code);
-  console.error("Response:", error?.response);
-  console.error("Response Code:", error?.responseCode);
-  console.error("Command:", error?.command);
-  console.error("================================");
-
-  return res.status(500).json({
-    success: false,
-    message: error?.message || "Failed to dispatch verification email.",
-  });
-}
+    } catch (error: any) {
+      console.error("Failed to send email:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to dispatch email.",
+        error: error.message || error,
+      });
+    }
   });
 
   // API Route to generate and send verification OTP
