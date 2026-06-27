@@ -28,54 +28,88 @@ async function sendEmailHelper(to: string, subject: string, body: string) {
   let isTestAccount = false;
   let previewUrl = "";
 
-  if (smtpHost && smtpUser && smtpPass) {
-    // Use configured SMTP server
-    transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
-    console.log(`Using custom SMTP transport: ${smtpHost}:${smtpPort}`);
-  } else {
-    // Fallback to test account on ethereal.email
+  // Extract any HTTP/HTTPS URL from body as fallback previewUrl
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const match = body.match(urlRegex);
+  const fallbackUrl = match ? match[0] : "";
+
+  try {
+    if (smtpHost && smtpUser && smtpPass) {
+      // Use configured SMTP server
+      transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+      console.log(`Using custom SMTP transport: ${smtpHost}:${smtpPort}`);
+    } else {
+      // Fallback to test account on ethereal.email
+      isTestAccount = true;
+      console.log("SMTP environment variables not configured. Creating Ethereal test account...");
+      try {
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: "smtp.ethereal.email",
+          port: 587,
+          secure: false,
+          auth: {
+            user: testAccount.user,
+            pass: testAccount.pass,
+          },
+        });
+      } catch (etherealErr) {
+        console.warn("Could not create Ethereal test account (offline or ethereal.email down). Falling back to fully offline local simulation.", etherealErr);
+        transporter = null;
+      }
+    }
+  } catch (err) {
+    console.warn("SMTP initialization failed. Falling back to offline simulation.", err);
     isTestAccount = true;
-    console.log("SMTP environment variables not configured. Creating Ethereal test account...");
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
+    transporter = null;
   }
 
+  const fromAddress = transporter && transporter.options && transporter.options.auth 
+    ? transporter.options.auth.user 
+    : "sandbox-simulator@midnightfork.com";
+
   const mailOptions = {
-    from: isTestAccount ? `"Midnight Fork (Simulated)" <${transporter.options.auth?.user}>` : `"Midnight Fork" <${smtpSender}>`,
+    from: isTestAccount ? `"Midnight Fork (Simulated)" <${fromAddress}>` : `"Midnight Fork" <${smtpSender}>`,
     to,
     subject,
     text: body,
     html: body.replace(/\n/g, "<br>"),
   };
 
-  const info = await transporter.sendMail(mailOptions);
+  let messageId = "simulated-msg-" + Math.random().toString(36).substring(2, 10);
 
-  if (isTestAccount) {
-    previewUrl = nodemailer.getTestMessageUrl(info) || "";
-    console.log(`Simulated Email Sent! Preview URL: ${previewUrl}`);
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      messageId = info.messageId;
+      if (isTestAccount) {
+        previewUrl = nodemailer.getTestMessageUrl(info) || fallbackUrl;
+        console.log(`Simulated Email Sent via Ethereal! Preview URL: ${previewUrl}`);
+      } else {
+        console.log(`Real Email Sent! Message ID: ${info.messageId}`);
+      }
+    } catch (sendErr) {
+      console.warn("Failed to send mail via transport. Falling back to offline local simulation.", sendErr);
+      isTestAccount = true;
+      previewUrl = fallbackUrl;
+    }
   } else {
-    console.log(`Real Email Sent! Message ID: ${info.messageId}`);
+    isTestAccount = true;
+    previewUrl = fallbackUrl;
+    console.log(`Local Simulation: Verification email generated but not sent out. Fallback preview URL: ${previewUrl}`);
   }
 
   return {
     success: true,
-    messageId: info.messageId,
+    messageId,
     isTestAccount,
     previewUrl,
   };
